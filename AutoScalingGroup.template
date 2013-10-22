@@ -41,7 +41,7 @@
         "LaunchConfigurationName" : { "Ref" : "JobServerConfig" },
         "AvailabilityZones" : { "Fn::GetAZs" : "" },
         "VPCZoneIdentifier" : [ { "Ref" : "SubnetUuid" } ],
-        "MinSize" : "1",
+        "MinSize" : "2",
         "MaxSize" : "3"
       }
     },
