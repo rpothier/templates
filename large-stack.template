@@ -1,0 +1,335 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+
+  "Description": "A load balancer instance running a local HAproxy on Fedora 19",
+
+  "Parameters": {
+    "DesiredCapacity": {
+      "Default": "200",
+      "MinValue": "1",
+      "MaxValue": "1001",
+      "Description" : "Number of instances to create",
+      "Type": "Number"
+    },
+    "SubnetUuid223" : {
+        "Description" : "Subnet UUID",
+        "Default" : "d45a981d-7d06-44d7-96e1-f69e38e11ab6",
+        "Type" : "String"
+    },      
+    "SubnetUuid224" : {
+        "Description" : "Subnet UUID",
+        "Default" : "0ca5d9c3-6eac-4bad-9ae9-df09a8f4a20a",
+        "Type" : "String"
+    },      
+
+    "SubnetUuid225" : {
+        "Description" : "Subnet UUID",
+        "Default" : "e1293eb5-e61c-42bc-ade8-d434dd0c71cb",
+        "Type" : "String"
+    },      
+
+    "SubnetUuid226" : {
+        "Description" : "Subnet UUID",
+        "Default" : "fc4ce5e4-28d3-418b-91de-c0bc7a8536f6",
+        "Type" : "String"
+    },      
+
+    "SubnetUuid227" : {
+        "Description" : "Subnet UUID",
+        "Default" : "504b2e51-48ed-460b-8f05-bda049769a3f",
+        "Type" : "String"
+    },      
+
+    "KeyName": {
+      "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instances",
+      "Type": "String",
+      "Default" : "build_server" 
+    },
+
+
+    "InstanceType": {
+      "Description": "HAProxy server EC2 instance type",
+      "Default": "m1.small",
+      "Type": "String",
+      "AllowedValues": [ "m1.tiny", "m1.small", "m1.medium", "m1.large", "m1.xlarge" ],
+      "ConstraintDescription": "must be a valid EC2 instance type."
+    },
+
+    "LinuxDistribution": {
+      "Default": "F19",
+      "Description" : "Distribution of choice",
+      "Type": "String",
+      "AllowedValues" : [ "F19", "F18", "F17", "U12", "RHEL-6.1", "RHEL-6.2", "RHEL-6.3" ]
+    }
+  },
+
+  "Mappings" : {
+    "AWSInstanceType2Arch" : {
+      "m1.tiny"    : { "Arch" : "32" },
+      "m1.small"    : { "Arch" : "64" },
+      "m1.medium"    : { "Arch" : "64" },
+      "m1.large"   : { "Arch" : "64" },
+      "m1.xlarge"   : { "Arch" : "64" }
+    },
+    "DistroArch2AMI": {
+      "F19"      : { "32" : "F19-i386-cfntools", "64" : "F19-x86_64-cfntools" },
+      "F18"      : { "32" : "F18-i386-cfntools", "64" : "F18-x86_64-cfntools" },
+      "F17"      : { "32" : "F17-i386-cfntools", "64" : "F17-x86_64-cfntools" },
+      "U12"      : { "32" : "U10-i386-cfntools", "64" : "precise" },
+      "RHEL-6.1" : { "32" : "rhel61-i386-cfntools", "64" : "rhel61-x86_64-cfntools" },
+      "RHEL-6.2" : { "32" : "rhel62-i386-cfntools", "64" : "rhel62-x86_64-cfntools" },
+      "RHEL-6.3" : { "32" : "rhel63-i386-cfntools", "64" : "rhel63-x86_64-cfntools" }
+    }
+  },
+
+  "Resources": {
+    "LoadBalancerInstance": {
+      "Type": "AWS::EC2::Instance",
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "configSets" : {
+            "proxy" : [ "config1" , "config2" ]
+          },
+          "config1": {
+            "files": {
+              "/etc/yum.conf": {
+                "content": { "Fn::Join": ["", [
+                "[main]\n",
+                "cachedir=/var/cache/yum/$basearch/$releasever\n",
+                "keepcache=0\n",
+                "debuglevel=2\n",
+                "logfile=/var/log/yum.log\n",
+                "exactarch=1\n",
+                "obsoletes=1\n",
+                "gpgcheck=1\n",
+                "plugins=1\n",
+                "installonly_limit=3\n",
+                "# The proxy server - proxy server:port number\n",
+                "proxy=http://171.71.25.73:3128\n",
+                "\n"
+                ]]},
+                "mode": "000644",
+                "owner": "root",
+                "group": "root"
+              }
+            }
+          },
+          "config2": {
+            "packages": {
+              "yum": {
+                "haproxy"        : []
+              }
+            },
+            "services": {
+              "systemd": {
+                "haproxy"   : { "enabled": "true", "ensureRunning": "true" }
+              }
+            },
+            "files": {
+              "/etc/haproxy/haproxy.cfg": {
+                "content": { "Fn::Join": ["", [
+                "    global\n",
+                "        daemon\n",
+                "        maxconn 256\n",
+                "\n",
+                "    defaults\n",
+                "        mode http\n",
+                "        timeout connect 5000ms\n",
+                "        timeout client 50000ms\n",
+                "        timeout server 50000ms\n",
+                "\n",
+                "    frontend http-in\n",
+                "        bind *:80\n",
+                "        default_backend servers\n",
+                "\n",
+                "    backend servers\n",
+                "        balance roundrobin\n",
+                "        option http-server-close\n",
+                "        option forwardfor\n"
+                ]]},
+                "mode": "000644",
+                "owner": "root",
+                "group": "root"
+            }
+          }
+        }
+        }
+      },
+      "Properties": {
+        "ImageId" : {
+          "Fn::FindInMap" : [ "DistroArch2AMI",
+                              { "Ref" : "LinuxDistribution" },
+                              { "Fn::FindInMap" : [ "AWSInstanceType2Arch",
+                                                    { "Ref" : "InstanceType" },
+                                                    "Arch" ] } ]
+        },
+        "InstanceType": { "Ref": "InstanceType" },
+        "KeyName": { "Ref": "KeyName" },
+        "SubnetId" : { "Ref" : "SubnetUuid225" },
+        "UserData": { "Fn::Base64": { "Fn::Join": ["", [
+          "#!/bin/bash -v\n",
+          "/opt/aws/bin/cfn-init -c proxy -s ",
+          { "Ref": "AWS::StackName" },
+          "    --region ", { "Ref": "AWS::Region" }, "\n"
+        ]]}}
+      }
+    },
+    "Group223" : { 
+      "Type" : "AWS::AutoScaling::AutoScalingGroup",
+      "Properties" : { 
+        "LaunchConfigurationName" : { "Ref" : "Config223" },
+        "AvailabilityZones" : { "Fn::GetAZs" : "" },
+        "VPCZoneIdentifier" : [ { "Ref" : "SubnetUuid223" } ],
+        "MinSize" : "1",
+        "MaxSize" : "1000",
+        "DesiredCapacity" : { "Ref" : "DesiredCapacity" } 
+      }   
+    },  
+    "Config223" : { 
+      "Type" : "AWS::AutoScaling::LaunchConfiguration",
+      "Properties": {
+        "ImageId" : { 
+          "Fn::FindInMap" : [ "DistroArch2AMI",
+                              { "Ref" : "LinuxDistribution" },
+                              { "Fn::FindInMap" : [ "AWSInstanceType2Arch",
+                                                    { "Ref" : "InstanceType" },
+                                                    "Arch" ] } ] 
+        },  
+        "InstanceType"      : { "Ref" : "InstanceType" },
+        "KeyName"           : { "Ref" : "KeyName" },
+        "NovaSchedulerHints": [ {"Key": "part", "Value": "long"},
+                                {"Key": "ready", "Value": "short"} ],
+        "UserData"          : { "Fn::Base64" : { "Fn::Join" : ["", [
+          "#!/bin/bash -v\n"
+        ]]}}
+      }   
+    },  
+    "Group224" : { 
+      "Type" : "AWS::AutoScaling::AutoScalingGroup",
+      "Properties" : { 
+        "LaunchConfigurationName" : { "Ref" : "Config224" },
+        "AvailabilityZones" : { "Fn::GetAZs" : "" },
+        "VPCZoneIdentifier" : [ { "Ref" : "SubnetUuid224" } ],
+        "MinSize" : "1",
+        "MaxSize" : "1000",
+        "DesiredCapacity" : { "Ref" : "DesiredCapacity" } 
+      }   
+    },  
+    "Config224" : { 
+      "Type" : "AWS::AutoScaling::LaunchConfiguration",
+      "Properties": {
+        "ImageId" : { 
+          "Fn::FindInMap" : [ "DistroArch2AMI",
+                              { "Ref" : "LinuxDistribution" },
+                              { "Fn::FindInMap" : [ "AWSInstanceType2Arch",
+                                                    { "Ref" : "InstanceType" },
+                                                    "Arch" ] } ] 
+        },  
+        "InstanceType"      : { "Ref" : "InstanceType" },
+        "KeyName"           : { "Ref" : "KeyName" },
+        "NovaSchedulerHints": [ {"Key": "part", "Value": "long"},
+                                {"Key": "ready", "Value": "short"} ],
+        "UserData"          : { "Fn::Base64" : { "Fn::Join" : ["", [
+          "#!/bin/bash -v\n"
+        ]]}}
+      }   
+    },  
+    "Group225" : {
+      "Type" : "AWS::AutoScaling::AutoScalingGroup",
+      "Properties" : {
+        "LaunchConfigurationName" : { "Ref" : "Config225" },
+        "AvailabilityZones" : { "Fn::GetAZs" : "" },
+        "VPCZoneIdentifier" : [ { "Ref" : "SubnetUuid225" } ],
+        "MinSize" : "1",
+        "MaxSize" : "1000",
+        "DesiredCapacity" : { "Ref" : "DesiredCapacity" } 
+      }
+    },
+    "Config225" : {
+      "Type" : "AWS::AutoScaling::LaunchConfiguration",
+      "Properties": {
+        "ImageId" : {
+          "Fn::FindInMap" : [ "DistroArch2AMI",
+                              { "Ref" : "LinuxDistribution" },
+                              { "Fn::FindInMap" : [ "AWSInstanceType2Arch",
+                                                    { "Ref" : "InstanceType" },
+                                                    "Arch" ] } ]
+        },
+        "InstanceType"      : { "Ref" : "InstanceType" },
+        "KeyName"           : { "Ref" : "KeyName" },
+        "NovaSchedulerHints": [ {"Key": "part", "Value": "long"},
+                                {"Key": "ready", "Value": "short"} ],
+        "UserData"          : { "Fn::Base64" : { "Fn::Join" : ["", [
+          "#!/bin/bash -v\n"
+        ]]}}
+      }
+    },
+    "Group226" : {
+      "Type" : "AWS::AutoScaling::AutoScalingGroup",
+      "Properties" : {
+        "LaunchConfigurationName" : { "Ref" : "Config226" },
+        "AvailabilityZones" : { "Fn::GetAZs" : "" },
+        "VPCZoneIdentifier" : [ { "Ref" : "SubnetUuid226" } ],
+        "MinSize" : "1",
+        "MaxSize" : "1000",
+        "DesiredCapacity" : { "Ref" : "DesiredCapacity" } 
+      }
+    },
+    "Config226" : {
+      "Type" : "AWS::AutoScaling::LaunchConfiguration",
+      "Properties": {
+        "ImageId" : {
+          "Fn::FindInMap" : [ "DistroArch2AMI",
+                              { "Ref" : "LinuxDistribution" },
+                              { "Fn::FindInMap" : [ "AWSInstanceType2Arch",
+                                                    { "Ref" : "InstanceType" },
+                                                    "Arch" ] } ]
+        },
+        "InstanceType"      : { "Ref" : "InstanceType" },
+        "KeyName"           : { "Ref" : "KeyName" },
+        "NovaSchedulerHints": [ {"Key": "part", "Value": "long"},
+                                {"Key": "ready", "Value": "short"} ],
+        "UserData"          : { "Fn::Base64" : { "Fn::Join" : ["", [
+          "#!/bin/bash -v\n"
+        ]]}}
+      }
+    },
+   "Group227" : { 
+      "Type" : "AWS::AutoScaling::AutoScalingGroup",
+      "Properties" : { 
+        "LaunchConfigurationName" : { "Ref" : "Config227" },
+        "AvailabilityZones" : { "Fn::GetAZs" : "" },
+        "VPCZoneIdentifier" : [ { "Ref" : "SubnetUuid227" } ],
+        "MinSize" : "1",
+        "MaxSize" : "1000",
+        "DesiredCapacity" : { "Ref" : "DesiredCapacity" } 
+      }   
+    },  
+    "Config227" : { 
+      "Type" : "AWS::AutoScaling::LaunchConfiguration",
+      "Properties": {
+        "ImageId" : { 
+          "Fn::FindInMap" : [ "DistroArch2AMI",
+                              { "Ref" : "LinuxDistribution" },
+                              { "Fn::FindInMap" : [ "AWSInstanceType2Arch",
+                                                    { "Ref" : "InstanceType" },
+                                                    "Arch" ] } ] 
+        },  
+        "InstanceType"      : { "Ref" : "InstanceType" },
+        "KeyName"           : { "Ref" : "KeyName" },
+        "NovaSchedulerHints": [ {"Key": "part", "Value": "long"},
+                                {"Key": "ready", "Value": "short"} ],
+        "UserData"          : { "Fn::Base64" : { "Fn::Join" : ["", [
+          "#!/bin/bash -v\n"
+        ]]}}
+      }   
+    }   
+  }, 
+
+  "Outputs": {
+    "PublicIp": {
+      "Value": { "Fn::GetAtt": [ "LoadBalancerInstance", "PublicIp" ] },
+      "Description": "instance IP"
+    }
+  }
+}
