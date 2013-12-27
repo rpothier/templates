@@ -1,0 +1,51 @@
+#!/bin/bash
+i=0
+#223
+for n in {1..200};
+    do
+    vm_num=$(printf "%04d" $n)
+    vm_name="vm-"$vm_num
+    nova boot --image F19-x86_64-cfntools --flavor 2 --key_name build_server --nic net-id=ac9f0ce6-34bc-4f5e-8a69-ccd46e5fa7b8 $vm_name
+
+done
+
+#sleep 60
+
+#224
+for n in {201..400};
+    do
+    vm_num=$(printf "%04d" $n)
+    vm_name="vm-"$vm_num
+    nova boot --image F19-x86_64-cfntools --flavor 2 --key_name build_server --nic net-id=e1c91501-33ce-443b-8bd3-46db32456936 $vm_name
+
+done
+#sleep 60
+
+#225
+for n in {401..600};
+    do
+    vm_num=$(printf "%04d" $n)
+    vm_name="vm-"$vm_num
+    nova boot --image F19-x86_64-cfntools --flavor 2 --key_name build_server --nic net-id=6bda17a7-6976-42b9-a72c-fe818d674fd4 $vm_name
+
+done
+#sleep 60
+
+#226
+for n in {601..800};
+    do
+    vm_num=$(printf "%04d" $n)
+    vm_name="vm-"$vm_num
+    nova boot --image F19-x86_64-cfntools --flavor 2 --key_name build_server --nic net-id=f143916b-1af4-4b4f-9493-dd43ee1865ca $vm_name
+
+done
+#sleep 60
+
+#227
+for n in {801..1000};
+    do
+    vm_num=$(printf "%04d" $n)
+    vm_name="vm-"$vm_num
+    nova boot --image F19-x86_64-cfntools --flavor 2 --key_name build_server --nic net-id=db39a250-9024-44b9-9ef6-52e8873e3e43 $vm_name
+
+done
