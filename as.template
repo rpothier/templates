@@ -1,0 +1,103 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+
+  "Description": "A load balancer instance running a local HAproxy on Fedora 19",
+
+  "Parameters": {
+    "DesiredCapacity": {
+      "Default": "1",
+      "MinValue": "1",
+      "MaxValue": "1001",
+      "Description" : "Number of instances to create",
+      "Type": "Number"
+    },  
+    
+    "SubnetUuid223" : { 
+        "Description" : "Subnet UUID",
+        "Default" : "a124349d-daa2-4e0f-bffc-af771830c654",
+        "Type" : "String"
+    },  
+
+    "KeyName": {
+      "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instances",
+      "Type": "String",
+      "Default" : "heat_key"
+    },  
+
+
+    "InstanceType": {
+      "Description": "HAProxy server EC2 instance type",
+      "Default": "m1.small",
+      "Type": "String",
+      "AllowedValues": [ "m1.tiny", "m1.small", "m1.medium", "m1.large", "m1.xlarge" ],
+      "ConstraintDescription": "must be a valid EC2 instance type."
+    },  
+
+    "LinuxDistribution": {
+      "Default": "F17",
+      "Description" : "Distribution of choice",
+      "Type": "String",
+      "AllowedValues" : [ "F19", "F18", "F17", "U12", "RHEL-6.1", "RHEL-6.2", "RHEL-6.3" ]
+    }   
+  },  
+
+  "Mappings" : { 
+    "AWSInstanceType2Arch" : { 
+      "m1.tiny"    : { "Arch" : "32" },
+      "m1.small"    : { "Arch" : "64" },
+      "m1.medium"    : { "Arch" : "64" },
+      "m1.large"   : { "Arch" : "64" },
+      "m1.xlarge"   : { "Arch" : "64" }
+    },
+    "DistroArch2AMI": {
+      "F19"      : { "32" : "F19-i386-cfntools", "64" : "F19-x86_64-cfntools" },
+      "F18"      : { "32" : "F18-i386-cfntools", "64" : "F18-x86_64-cfntools" },
+      "F17"      : { "32" : "F17-i386-cfntools", "64" : "F17-x86_64-cfntools" },
+      "U12"      : { "32" : "U10-i386-cfntools", "64" : "precise" },
+      "RHEL-6.1" : { "32" : "rhel61-i386-cfntools", "64" : "rhel61-x86_64-cfntools" },
+      "RHEL-6.2" : { "32" : "rhel62-i386-cfntools", "64" : "rhel62-x86_64-cfntools" },
+      "RHEL-6.3" : { "32" : "rhel63-i386-cfntools", "64" : "rhel63-x86_64-cfntools" }
+    }
+  },
+
+  "Resources": {
+    "Group223" : {
+      "Type" : "AWS::AutoScaling::AutoScalingGroup",
+      "Properties" : {
+        "LaunchConfigurationName" : { "Ref" : "Config223" },
+        "AvailabilityZones" : { "Fn::GetAZs" : "" },
+        "VPCZoneIdentifier" : [ { "Ref" : "SubnetUuid223" } ],
+        "MinSize" : "1",
+        "MaxSize" : "1000",
+        "DesiredCapacity" : { "Ref" : "DesiredCapacity" }
+      }
+    },
+    "Config223" : {
+      "Type" : "AWS::AutoScaling::LaunchConfiguration",
+      "Properties": {
+        "ImageId" : {
+          "Fn::FindInMap" : [ "DistroArch2AMI",
+                              { "Ref" : "LinuxDistribution" },
+                              { "Fn::FindInMap" : [ "AWSInstanceType2Arch",
+                                                    { "Ref" : "InstanceType" },
+                                                    "Arch" ] } ]
+        },
+        "InstanceType"      : { "Ref" : "InstanceType" },
+        "KeyName"           : { "Ref" : "KeyName" },
+        "NovaSchedulerHints": [ {"Key": "part", "Value": "long"},
+                                {"Key": "ready", "Value": "short"} ],
+        "UserData"          : { "Fn::Base64" : { "Fn::Join" : ["", [
+          "#!/bin/bash -v\n"
+        ]]}}
+      }
+    }
+  },
+
+  "Outputs": {
+    "PublicIp": {
+      "Value": { "Fn::GetAtt": [ "LoadBalancerInstance", "PublicIp" ] },
+      "Description": "instance IP"
+    }
+  }
+}
+
