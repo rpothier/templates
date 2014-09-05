@@ -1,0 +1,43 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+
+  "Description": "SR-IOV HOT template that just defines a single compute instance",
+
+  "Parameters" : {
+    "KeyName" : {
+      "Type": "String",
+      "Description": "Name of an existing key pair to use for the instance",
+      "Default": "heat_key"
+    },
+    "InstanceType": {
+      "Type": "String",
+      "Description": "Instance type for the instance to be created",
+      "Default": "m1.small"
+    },
+    "ImageId" : {
+      "Type": "String"
+    },
+    "my_net" : {
+      "Type": "String",
+      "Description": "the net",
+      "Default" : "private"
+    }
+  },
+  "Resources" : {
+    "my_port" : {
+      "Type": "OS::Neutron::Port",
+      "Properties" : {
+        "network": { "Ref": "my_net" },
+        "value_specs": {
+          "binding:vnic_type": "direct"
+        }
+      }
+    }
+  },
+  "Outputs" : {
+    "instance_ip": {
+      "Description": "The IP address of the deployed instance"
+    }
+  }
+}
+
