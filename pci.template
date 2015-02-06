@@ -15,7 +15,9 @@
       "Default": "m1.small"
     },
     "ImageId" : {
-      "Type": "String"
+      "Description": "ID of the image to use for the instance",
+      "Type": "String",
+      "Default": "ubuntu_precise"
     },
     "my_net" : {
       "Type": "String",
@@ -28,15 +30,20 @@
       "Type": "OS::Neutron::Port",
       "Properties" : {
         "network": { "Ref": "my_net" },
-        "value_specs": {
-          "binding:vnic_type": "direct"
-        }
+        "binding:vnic_type": "direct",
+        "replacement_policy": "AUTO"
       }
     }
   },
   "Outputs" : {
     "instance_ip": {
-      "Description": "The IP address of the deployed instance"
+      "Description": "The IP address of the deployed instance",
+      "Value": {
+        "get_attr": [
+          "my_port", 
+          "status"
+        ]
+      }
     }
   }
 }

@@ -23,38 +23,32 @@ parameters:
     type: string
     description: the net
     default: private
-
+  #sriov_port:
+  #  type: string
+  #  description: the port
 
 resources:
-#  my_port:
-#    type: OS::Neutron::SriovPort
-#    #type: OS::Neutron::PciPort
-#    properties:
-#      network: { get_param: my_net }
-#      #vnic_type: normal
-#      #value_specs: { "binding:vnic_type": normal}
 
-  my_port:
-    type: OS::Neutron::Port
+  vmfex1:
+    type: OS::Nova::Server
+    properties:
+      name: sr-iov
+      key_name: { get_param: Keyname }
+      image: { get_param: ImageId }
+      flavor: { get_param: InstanceType }
+      networks:
+        - port: { get_resource: sriov_port1 }
+
+  sriov_port1:
+    type: OS::Neutron::SriovPort
+    #type: OS::Neutron::Port
     properties:
       network: { get_param: my_net }
-      #vnic_type: direct
-      vnic_type: normal
-      replacement_policy: AUTO
+      binding:vnic_type: direct
 
-#  sriov_instance:
-#    type: OS::Nova::Server
-#    properties:
-#      name: sr-iov
-#      key_name: { get_param: Keyname }
-#      image: { get_param: ImageId }
-#      flavor: { get_param: InstanceType }
-#      networks:
-#        - port: { get_resource: sriov_port }
-
-outputs:
-  instance_ip:
-    description: The IP address of the deployed instance
-    value: { get_attr: [my_port, status] }
+#outputs:
+#  instance_ip:
+#    description: The IP address of the deployed instance
+    #value: { get_attr: [my_port, status] }
     #value: { get_attr: [sriov_instance, networks] }
 
