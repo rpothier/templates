@@ -1,0 +1,83 @@
+# This is a hello world HOT template just defining a single compute instance
+heat_template_version: 2013-05-23
+
+description: >
+  HOT template that creates a IPV6 network and subnet.
+  Contains just base features to verify base HOT support.
+
+parameters:
+  KeyName:
+    type: string
+    description: Name of an existing key pair to use for the instance
+    default: heat_key
+  InstanceType:
+    type: string
+    description: Instance type for the instance to be created
+    default: m1.large
+  ImageId:
+    type: string
+    description: ID of the image to use for the instance
+  public_net:
+    type: string
+    description: >
+      ID or name of public network for which floating IP addresses will be allocated
+
+resources:
+
+  ipv6_net:
+    type: OS::Neutron::Net
+    properties:
+      name: ipv6-net
+      value_specs: { "router:external": True }
+
+#  ipv6_subnet:
+#    type: OS::Neutron::Subnet  
+#    properties:
+#      cidr: fd01:1::/64
+#      ip_version: 6
+#      name: ipv6-subnet
+#      network: { get_resource: ipv6_net }
+##      host_routes: 
+##        - {destination: fade:1::ffff:ffff:ffff:fffe, nexthop: fade:1::ffff:ffff:ffff:fffe}
+
+  router:
+    type: OS::Neutron::Router
+    properties:
+      external_gateway_info:
+        network: { get_resource: ipv6_net }
+
+  #ipv6_port:
+  #  type: OS::Neutron::Port
+  #  properties:
+  #    network_id: { get_resource: ipv6_net }
+      #fixed_ips:
+      #- subnet_id: { get_resource: ipv6_subnet }
+
+  #my_instance:
+  #  type: OS::Nova::Server
+  #  properties:
+  #    flavor: { get_param: InstanceType }
+  #    image: { get_param: ImageId }
+  #    key_name: { get_param: KeyName }
+  #    name: ipv6_server
+  #    networks:
+  #      - port: { get_resource: ipv6_port }
+
+
+
+
+outputs:
+#  address_mode:
+#    description: The address mode
+#    value: { get_attr: [ipv6_subnet, ipv6_address_mode] }
+#  ra_mode:
+#    description: The RA mode
+#    value: { get_attr: [ipv6_subnet, ipv6_ra_mode] }
+#  net:
+#    description: The net   
+#    value: { get_attr: [ipv6_subnet, network_id] }
+
+#  instance_ip:
+#    description: The IP address of the deployed instance
+#    value: { get_attr: [my_instance, PublicIp] }
+
