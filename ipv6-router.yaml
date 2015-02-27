@@ -1,9 +1,9 @@
-# This is a hello world HOT template just defining a single compute instance
+#
 heat_template_version: 2013-05-23
 
 description: >
-  HOT template that creates a IPV6 network and subnet.
-  Contains just base features to verify base HOT support.
+  HOT template that creates a IPV6 network and and IPV6 router.
+  This is used to verify https://review.openstack.org/#/c/156283/
 
 parameters:
   KeyName:
